@@ -1,0 +1,32 @@
+name: Update org members in README
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # daily at 00:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Never run two refreshes at once
+concurrency:
+  group: update-members
+  cancel-in-progress: true
+
+jobs:
+  update-members:
+    runs-on: ubuntu-latest # curl + jq preinstalled, no setup steps needed
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Regenerate members section
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash .github/scripts/update-members.sh
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add profile/README.md
+          git diff --staged --quiet || { git commit -m "chore: refresh org members [skip ci]"; git push; }
